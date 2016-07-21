@@ -17,10 +17,12 @@ class Game
 
   def next_turn!
     @current_players.rotate!
+
   end
 
   def next_round!(winner)
     winner.pot += @game_pot
+    puts "#{winner.name} won #{@game_pot}!"
     @game_pot = 0
     @players.each { |player| player.round_bet = 0 }
     @max_round_bet = 0
@@ -32,29 +34,35 @@ class Game
   def play
     until over?
       winner = play_round
+      puts "#{winner.name} wins the hand!"
       next_round!(winner)
     end
   end
 
   def play_round
     round_setup
+    begin
+      @current_players.length.times do
+        play_turn
+      end
 
-    @current_players.length.times do
-      play_turn
+      until round_over?
+        play_turn
+      end
+
+      mulligan
+
+      @current_players.length.times do
+        play_turn
+      end
+
+      until round_over?
+        play_turn
+      end
+    rescue
+      determine_winner
     end
 
-    until round_over?
-      play_turn
-    end
-    mulligan
-
-    @current_players.length.times do
-      play_turn
-    end
-
-    until round_over?
-      play_turn
-    end
     determine_winner
   end
 
@@ -72,6 +80,7 @@ class Game
       player.hand = Hand.new
       @deck.deal(player.hand) until player.hand.cards.length == 5
     end
+
     current_player.pot -= @small_blind
     current_player.round_bet = @small_blind
     next_turn!
@@ -79,7 +88,7 @@ class Game
     current_player.round_bet = 2 * @small_blind
     @max_round_bet = 2 * @small_blind
     next_turn!
-    @pot = 3 * @small_blind
+    @game_pot = 3 * @small_blind
   end
 
   def phase_setup
@@ -88,6 +97,8 @@ class Game
 
   def play_turn
     puts "#{current_player.name}: your hand is #{current_player.hand.to_s}"
+    puts "Current max round bet: #{@max_round_bet}"
+    puts "You currently have: #{current_player.pot}"
     response = current_player.get_bet
     case response
     when :F
@@ -105,10 +116,11 @@ class Game
       @max_round_bet = current_player.round_bet
       next_turn!
     end
+    raise ArgumentError if @current_players.length == 1
   end
 
   def round_over?
-    @current_players.all? { |player| player.round_bet == @max_round_bet}
+    @current_players.all? { |player| player.round_bet == @max_round_bet } || @current_players.length == 1
   end
 
   def over?
@@ -123,6 +135,7 @@ class Game
     winning_value = 0
     winner = nil
     @current_players.each do |player|
+      puts "#{player.name} has #{player.hand.to_s}"
       winner = player if player.hand.strongest_set > winning_value
     end
     winner
@@ -131,5 +144,5 @@ class Game
 
 end
 
-game = Game.new([Player.new("Gregory"),Player.new("Erica")], 10)
+game = Game.new([Player.new("Gregory"), Player.new("Erica"), Player.new("Chris")], 10)
 game.play

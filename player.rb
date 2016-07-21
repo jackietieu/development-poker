@@ -28,7 +28,19 @@ class Player
   end
 
   def get_bet
-    puts "would you like to fold, call, or bet?"
-    eval(gets.chomp)
+    input = nil
+
+    until input
+      puts "would you like to fold, call, or bet?"
+      temp = eval(gets.chomp)
+      case temp
+      when Fixnum
+        temp <= @pot ? input = temp : (puts "bid less than you have!")
+      else
+        input = temp
+      end
+    end
+
+    input
   end
 end
